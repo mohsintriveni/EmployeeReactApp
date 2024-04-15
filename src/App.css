@@ -24,6 +24,10 @@
   color: white;
 }
 
+.add-button-container {
+  margin-bottom: 16px;
+}
+
 .App-link {
   color: #61dafb;
 }
@@ -36,3 +40,9 @@
     transform: rotate(360deg);
   }
 }
+
+.Table-container {
+  width: 80%;
+  margin: 0 auto;
+}
+

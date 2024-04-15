@@ -1,25 +1,652 @@
-import logo from './logo.svg';
 import './App.css';
+import { Table, Button, Modal, message } from 'antd';
+import React, { useState, useEffect } from 'react';
+import { useForm , Controller } from 'react-hook-form';
 
 function App() {
+
+  const [data, setData] = useState([]);
+  const [ file , setFile ] = useState(null);
+  const [countries, setCountries] = useState({});
+  const [countrydropdown, setCountryDropdown] = useState([]);
+  const [states, setStates] = useState({});
+  const [statedropdown, setStateDropdown] = useState([]);
+  const [cities, setCities] = useState({});
+  const [citydropdowm, setCityDropdown] = useState([]);
+  const [isModalVisible, setIsModalVisible] = useState(false);
+  const { register , handleSubmit, getValues , control , formState: { errors = {} } } = useForm();
+
+
+  const handleFileChange = (e) => {
+    setFile(e.target.files[0]);
+  };
+  
+  useEffect(() => {
+    fetch('http://localhost:5055/api/Employees/get-all-employees')
+      .then(response => response.json())
+      .then(data => {
+        setData(data);
+      })
+      .catch(error => console.error('Error fetching data:', error));
+
+    fetch('http://localhost:5055/api/Country/get-countries')
+    .then(response => response.json())
+    .then(data => {
+      setCountryDropdown(data);
+      const countryMap = {};
+      data.forEach(country => {
+        countryMap[country.id] = country.countryName;
+      });
+      setCountries(countryMap);
+    })
+
+    fetch('http://localhost:5055/api/City/get-all-cities')
+    .then(response => response.json())
+    .then(data => {
+      const cityMap = {};
+      data.forEach(city => {
+        cityMap[city.id] = city.cityName;
+      });
+      setCities(cityMap);
+    })
+
+    fetch('http://localhost:5055/api/States/get-all-states')
+    .then(response => response.json())
+    .then(data => {
+      const stateMap = {};
+      data.forEach(state => {
+        stateMap[state.id] = state.stateName;
+      });
+      setStates(stateMap);
+    })
+
+  }, []);
+
+  const showModal = () => {
+    setIsModalVisible(true);
+  };
+
+  const handleCancel = () => {
+    setIsModalVisible(false);
+  };
+
+  const handleEdit = (record) => {
+    console.log('Edit:', record);
+  };
+
+  const handleStateChange = (value) => {
+    fetch('http://localhost:5055/api/City/get-cities-by-state/'+value)
+    .then(response => response.json())
+    .then(data => {
+      setCityDropdown(data);
+    })
+  }
+
+  const handleCountryChange = (value) => {
+    fetch('http://localhost:5055/api/States/get-states-by-country/'+value)
+    .then(response => response.json())
+    .then(data => {
+      setStateDropdown(data);
+    })
+  }
+
+  const onSubmit = async (formData) => {
+    // const formData = getValues();
+    const payload = new FormData();
+    console.log(file);
+    payload.append('photo',file);
+    payload.append('firstName', formData.firstName);
+    payload.append('lastName', formData.firstName);
+    payload.append('email', formData.email);
+    payload.append('gender', formData.gender);
+    payload.append('maritalStatus', formData.maritalStatus);
+    // var birthDate = payload.birthDate;
+    // var birthDateISO = new Date(birthDate + 'T00:00:00').toISOString();
+    // payload.append('birthDate', birthDateISO);
+    payload.append('hobbies', formData.hobbies);
+    payload.append('salary', formData.salary);
+    payload.append('address', formData.address);
+    payload.append('country', formData.country);
+    payload.append('state', formData.state);
+    payload.append('city', formData.city);
+    payload.append('zipCode', formData.zipCode);    
+    // var currentDate = new Date().toISOString();
+    payload.append('password', formData.password);
+    // formData.append('created', currentDate);
+    fetch('http://localhost:5055/api/Employees/add-employee/', {
+      method: 'POST',
+      body: payload
+    })
+    .then(response => {
+      if (!response.ok) {
+        throw new Error('Failed to add employee details');
+      }
+      return response.json();
+    })
+    .then(() => {
+      fetch('http://localhost:5055/api/Employees/get-all-employees')
+      .then(response => response.json())
+      .then(data => {
+        setData(data);
+      })
+      .catch(error => console.error('Error fetching data:', error));
+    })
+    .catch(error => {
+      console.error('Error adding employee details:', error.message);
+    });
+    handleCancel(); 
+  };
+
+  const handleDelete = (record) => {
+    Modal.confirm({
+      title: 'Confirm Delete',
+      content: `Are you sure you want to delete ${record.firstName} ${record.lastName}?`,
+      okText: 'Yes',
+      okType: 'danger',
+      cancelText: 'No',
+      onOk() {
+        fetch(`http://localhost:5055/api/Employees/delete-employee/`+record.id, {
+          method: 'DELETE',
+        })
+        .then(response => {
+          if (response.ok) {
+            message.success('Employee deleted successfully!');
+            fetch('http://localhost:5055/api/Employees/get-all-employees')
+            .then(response => response.json())
+            .then(updatedData => setData(updatedData))
+            .catch(error => console.error('Error fetching updated data:', error));
+          } else {
+            message.error('Failed to delete employee.');
+          }
+        })
+        .catch(error => {
+          console.error('Error deleting employee:', error);
+          message.error('Failed to delete employee.');
+        });
+      },
+      onCancel() {
+        console.log('Cancel');
+      },
+    });
+  };
+
+  const columns = [
+    {
+      title: 'First Name',
+      dataIndex: 'firstName',
+      key: 'firstName',
+    },
+    {
+      title: 'Last Name',
+      dataIndex: 'lastName',
+      key: 'lastName',
+    },
+    {
+      title: 'Email',
+      dataIndex: 'email',
+      key: 'email',
+    },
+    {
+      title: 'Gender',
+      dataIndex: 'gender',
+      key: 'gender',
+    },
+    {
+      title: 'Country',
+      dataIndex: 'country',
+      key: 'country',
+      render: id => countries[id],
+    },
+    {
+      title: 'State',
+      dataIndex: 'state',
+      key: 'state',
+      render: id => states[id],
+    },
+    {
+      title: 'City',
+      dataIndex: 'city',
+      key: 'city',
+      render: id => cities[id]
+    },
+    {
+      title: 'Actions',
+      key: 'actions',
+      render: (record) => (
+        <span>
+          <Button type="primary" onClick={() => handleEdit(record)}>Edit</Button>
+          <Button type="danger" onClick={() => handleDelete(record)}>Delete</Button>
+        </span>
+      ),
+    },
+  ];
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      <div className="Table-container">
+        <h2>Employee Management</h2>
+        <div className="add-button-container">
+          <Button type="primary" onClick={showModal}>Add</Button>
+        </div>
+        <Table dataSource={data} columns={columns} />
+      </div>
+      <Modal
+        title="Employee Details"
+        open={isModalVisible}
+        onCancel={handleCancel}
+        footer={[
+          <Button key="cancel" onClick={handleCancel}>
+            Close
+          </Button>,
+          <Button key="submit" type="primary" onClick={handleSubmit(onSubmit)}>
+            Save
+          </Button>,
+        ]}
+      > 
+        <form>
+          <div className="row">
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="firstName">First Name</label>
+                <input
+                  type="text"
+                  className="form-control"
+                  id="firstName"
+                  maxLength="50"
+                  {...register("firstName", { required: 'First name is required' })}
+                />
+                <span className="text-danger">{errors.firstName && errors.firstName.message}</span>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="lastName">Last Name</label>
+                <Controller
+                  name="lastName"
+                  control={control}
+                  defaultValue=""
+                  rules={{ required: 'Last name is required' }}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className="form-control"
+                      id="lastName"
+                      maxLength="50"
+                    />
+                  )}
+                />
+                <span className="text-danger">{errors.lastName && errors.lastName.message}</span>
+              </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="email">Email</label>
+                <Controller
+                  name="email"
+                  control={control}
+                  defaultValue=""
+                  rules={{ required: 'Email is required' }} 
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="email"
+                      className="form-control"
+                      id="email"
+                      maxLength="50"
+                    />
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.email && errors.email.message}
+                </span>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-group">
+                <label>Gender</label><br />
+                <Controller
+                  name="gender"
+                  control={control}
+                  defaultValue="M"
+                  render={({ field }) => (
+                    <>
+                      <div className="form-check form-check-inline">
+                        <input
+                          {...field}
+                          className="form-check-input"
+                          type="radio"
+                          id="maleGender"
+                          value="M"
+                        />
+                        <label
+                          className="form-check-label"
+                          htmlFor="maleGender"
+                        >
+                          Male
+                        </label>
+                      </div>
+                      <div className="form-check form-check-inline">
+                        <input
+                          {...field}
+                          className="form-check-input"
+                          type="radio"
+                          id="femaleGender"
+                          value="F"
+                        />
+                        <label
+                          className="form-check-label"
+                          htmlFor="femaleGender"
+                        >
+                          Female
+                        </label>
+                      </div>
+                    </>
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.gender && errors.gender.message}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="photo">Photo</label>
+                <Controller
+                  name="photo"
+                  control={control}
+                  defaultValue={null}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="file"
+                      className="form-control-file"
+                      id="photo"
+                      onChange={handleFileChange}
+                    />
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.photo && errors.photo.message}
+                </span>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-group">
+                <div className="form-check">
+                  <Controller
+                    name="maritalStatus"
+                    control={control}
+                    defaultValue={false}
+                    render={({ field }) => (
+                      <input
+                        {...field}
+                        className="form-check-input"
+                        type="checkbox"
+                        id="maritalStatus"
+                      />
+                    )}
+                  />
+                  <label
+                    className="form-check-label"
+                    htmlFor="maritalStatus"
+                  >
+                    Are you married?
+                  </label>
+                </div>
+                <span className="text-danger">
+                  {errors.maritalStatus && errors.maritalStatus.message}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="birthDate">Birth Date</label>
+                <Controller
+                  name="birthDate"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="date"
+                      className="form-control"
+                      id="birthDate"
+                    />
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.birthDate && errors.birthDate.message}
+                </span>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="hobbies">Hobbies</label>
+                <Controller
+                  name="hobbies"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className="form-control"
+                      id="hobbies"
+                      maxLength="100"
+                    />
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.hobbies && errors.hobbies.message}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="salary">Salary</label>
+                <Controller
+                  name="salary"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="number"
+                      className="form-control"
+                      id="salary"
+                      min="5000"
+                      step="any"
+                    />
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.salary && errors.salary.message}
+                </span>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="address">Address</label>
+                <Controller
+                  name="address"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <textarea
+                      {...field}
+                      className="form-control"
+                      id="address"
+                      maxLength="500"
+                    />
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.address && errors.address.message}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="country">Country</label>
+                <Controller
+                  name="country"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="form-control"
+                      id="ddlCountry"
+                      onChange={(e) => {
+                        const dropdownselectedCountry = e.target.value;
+                        field.onChange(dropdownselectedCountry);
+                        handleCountryChange(dropdownselectedCountry);
+                      }}
+                    >
+                      {countrydropdown.map(country => (
+                        <option key={country.id} value={country.id}>{country.countryName}</option>
+                      ))}
+                    </select>
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.country && errors.country.message}
+                </span>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="state">State</label>
+                <Controller
+                  name="state"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="form-control"
+                      id="ddlState"
+                      onChange={(e) => {
+                        const dropdownselectedState = e.target.value;
+                        field.onChange(dropdownselectedState);
+                        handleStateChange(dropdownselectedState);
+                      }}
+                    >
+                      {statedropdown.map(state => (
+                        <option key={state.id} value={state.id}>{state.stateName}</option>
+                      ))}
+                    </select>
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.state && errors.state.message}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="city">City</label>
+                <Controller
+                  name="city"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <select
+                      {...field}
+                      className="form-control"
+                      id="ddlCity"
+                    >
+                      {citydropdowm.map(city => (
+                        <option key={city.id} value={city.id}>{city.cityName}</option>
+                      ))}
+                    </select>
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.city && errors.city.message}
+                </span>
+              </div>
+            </div>
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="zipCode">Zip Code</label>
+                <Controller
+                  name="zipCode"
+                  control={control}
+                  defaultValue=""
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className="form-control"
+                      id="zipCode"
+                      maxLength="6"
+                    />
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.zipCode && errors.zipCode.message}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          <div className="row">
+            <div className="col-md-6">
+              <div className="form-group">
+                <label htmlFor="password">Password</label>
+                <Controller
+                  name="password"
+                  control={control}
+                  defaultValue=""
+                  rules={{
+                    required: 'Password is required',
+                    pattern: {
+                      value: /^(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,16}$/,
+                      message: 'Password must be 8-16 characters long and contain at least one uppercase letter, one number, and one special character.'
+                    }
+                  }}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="password"
+                      className="form-control"
+                      id="password"
+                      title="Password must be 8-16 characters long and contain at least one uppercase letter, one number, and one special character."
+                      required
+                    />
+                  )}
+                />
+                <span className="text-danger">
+                  {errors.password && errors.password.message}
+                </span>
+              </div>
+            </div>
+          </div>
+        </form>
+      </Modal>
+
     </div>
-  );
+  );  
 }
 
 export default App;
