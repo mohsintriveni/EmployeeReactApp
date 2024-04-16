@@ -57,7 +57,7 @@ function App() {
   
   useEffect(() => {
     const token = localStorage.getItem('token');
-    if (loggedInUser) {
+    if (token) {
       setLoggedIn(true);
       // setUser(JSON.parse(loggedInUser));
     };
