@@ -28,6 +28,10 @@
   margin-bottom: 16px;
 }
 
+.limitedwidth{
+  width: 20%;
+}
+
 .App-link {
   color: #61dafb;
 }

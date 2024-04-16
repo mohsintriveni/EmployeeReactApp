@@ -5,6 +5,8 @@ import { useForm , Controller } from 'react-hook-form';
 
 function App() {
 
+  const [loggedIn, setLoggedIn] = useState(false);
+  const [user, setUser] = useState(null);
   const [data, setData] = useState([]);
   const [ file , setFile ] = useState(null);
   const [countries, setCountries] = useState({});
@@ -22,8 +24,44 @@ function App() {
   const handleFileChange = (e) => {
     setFile(e.target.files[0]);
   };
+
+  const handleLogout = () => {
+    localStorage.removeItem('token');
+    setLoggedIn(false);
+    setUser(null);
+  };
+
+  const handleLogin = (userData) => {
+    fetch('http://localhost:5055/api/Authentication/login', {
+      method: 'POST',
+      body: JSON.stringify(userData),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if(!response.ok){
+        window.alert('Invalid Email/Password');
+        throw new Error('Invalid Email/Password'); 
+      }
+      return response.json();
+    })
+    .then(data => {
+      const token = data.message;
+      setUser(userData);
+      setLoggedIn(true);
+      localStorage.setItem('token', token);
+    })
+    .catch(error => console.error('Error logging in:', error));
+  };
   
   useEffect(() => {
+    const token = localStorage.getItem('token');
+    if (loggedInUser) {
+      setLoggedIn(true);
+      // setUser(JSON.parse(loggedInUser));
+    };
+
     fetch('http://localhost:5055/api/Employees/get-all-employees')
       .then(response => response.json())
       .then(data => {
@@ -236,13 +274,18 @@ function App() {
 
   return (
     <div className="App">
+      {!loggedIn ? (
+        <LoginForm login={handleLogin} />
+      ) : (
       <div className="Table-container">
         <h2>Employee Management</h2>
         <div className="add-button-container">
           <Button type="primary" onClick={showModal}>Add</Button>
+          <Button type="primary" onClick={handleLogout}>Logout</Button>
         </div>
         <Table dataSource={data} columns={columns} />
       </div>
+      )}
       <Modal
         title="Employee Details"
         open={isModalVisible}
@@ -665,9 +708,48 @@ function App() {
           </div>
         </form>
       </Modal>
-
+      
     </div>
   );  
+}
+
+function LoginForm({ login }) {
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const onSubmit = (e) => {
+    e.preventDefault();
+    login({email,password});
+  };
+
+  return (
+    <form className='limitedwidth mx-auto' onSubmit={onSubmit}>
+      <h2>Login</h2>
+      <div className="mb-3">
+        <input
+          type="email"
+          className="form-control"
+          placeholder="Username or Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="mb-3">
+        <input
+          type="password"
+          className="form-control"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          // pattern='/^(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,16}$/'
+        />
+      </div>
+      <button type="submit" className="btn btn-primary">Login</button>
+    </form>
+  );
 }
 
 export default App;
