@@ -1,6 +1,6 @@
 import './App.css';
 import { Table, Button, Modal, message } from 'antd';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useForm , Controller } from 'react-hook-form';
 
 function App() {
@@ -14,7 +14,9 @@ function App() {
   const [cities, setCities] = useState({});
   const [citydropdowm, setCityDropdown] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
-  const { register , handleSubmit, getValues , control , formState: { errors = {} } } = useForm();
+  const { handleSubmit , control , formState: { errors = {} } , reset } = useForm();
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const formRef = useRef(null);
  
 
   const handleFileChange = (e) => {
@@ -67,11 +69,14 @@ function App() {
   };
 
   const handleCancel = () => {
+    reset();
     setIsModalVisible(false);
+    setSelectedEmployee(null);
   };
 
   const handleEdit = (record) => {
-    console.log('Edit:', record);
+    setSelectedEmployee(record);
+    showModal();
   };
 
   const handleStateChange = (value) => {
@@ -93,8 +98,7 @@ function App() {
   const onSubmit = async (formData) => {
     // const formData = getValues();
     const payload = new FormData();
-    console.log(file);
-    payload.append('photo',file);
+    payload.append('photo', file);
     payload.append('firstName', formData.firstName);
     payload.append('lastName', formData.firstName);
     payload.append('email', formData.email);
@@ -109,32 +113,41 @@ function App() {
     payload.append('country', formData.country);
     payload.append('state', formData.state);
     payload.append('city', formData.city);
-    payload.append('zipCode', formData.zipCode);    
+    payload.append('zipCode', formData.zipCode);
     // var currentDate = new Date().toISOString();
     payload.append('password', formData.password);
     // formData.append('created', currentDate);
-    fetch('http://localhost:5055/api/Employees/add-employee/', {
-      method: 'POST',
+
+    let apiUrl = 'http://localhost:5055/api/Employees/add-employee/';
+    let method = 'POST';
+
+    if(selectedEmployee) {
+      apiUrl = 'http://localhost:5055/api/Employees/update-employee/'+selectedEmployee.id;
+      method = 'PUT';
+    }
+
+    fetch(apiUrl, {
+      method: method,
       body: payload
     })
-    .then(response => {
-      if (!response.ok) {
-        throw new Error('Failed to add employee details');
-      }
-      return response.json();
-    })
-    .then(() => {
-      fetch('http://localhost:5055/api/Employees/get-all-employees')
-      .then(response => response.json())
-      .then(data => {
-        setData(data);
+      .then(response => {
+        if (!response.ok) {
+          throw new Error('Failed to add employee details');
+        }
+        return response.json();
       })
-      .catch(error => console.error('Error fetching data:', error));
-    })
-    .catch(error => {
-      console.error('Error adding employee details:', error.message);
-    });
-    handleCancel(); 
+      .then(() => {
+        fetch('http://localhost:5055/api/Employees/get-all-employees')
+          .then(response => response.json())
+          .then(data => {
+            setData(data);
+          })
+          .catch(error => console.error('Error fetching data:', error));
+      })
+      .catch(error => {
+        console.error('Error adding employee details:', error.message);
+      });
+    handleCancel();
   };
 
   const handleDelete = (record) => {
@@ -243,17 +256,25 @@ function App() {
           </Button>,
         ]}
       > 
-        <form>
+        <form ref={formRef}>
           <div className="row">
             <div className="col-md-6">
               <div className="form-group">
                 <label htmlFor="firstName">First Name</label>
-                <input
-                  type="text"
-                  className="form-control"
-                  id="firstName"
-                  maxLength="50"
-                  {...register("firstName", { required: 'First name is required' })}
+                <Controller
+                  name="firstName"
+                  control={control}
+                  defaultValue={selectedEmployee ? selectedEmployee.firstName : ''}
+                  rules={{ required: 'First name is required' }}
+                  render={({ field }) => (
+                    <input
+                      {...field}
+                      type="text"
+                      className="form-control"
+                      id="firstName"
+                      maxLength="50"
+                    />
+                  )}
                 />
                 <span className="text-danger">{errors.firstName && errors.firstName.message}</span>
               </div>
@@ -264,7 +285,7 @@ function App() {
                 <Controller
                   name="lastName"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.lastName : ''}
                   rules={{ required: 'Last name is required' }}
                   render={({ field }) => (
                     <input
@@ -288,7 +309,7 @@ function App() {
                 <Controller
                   name="email"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.email : ''}
                   rules={{ required: 'Email is required' }} 
                   render={({ field }) => (
                     <input
@@ -311,7 +332,7 @@ function App() {
                 <Controller
                   name="gender"
                   control={control}
-                  defaultValue="M"
+                  defaultValue={selectedEmployee ? selectedEmployee.gender : 'M'}
                   render={({ field }) => (
                     <>
                       <div className="form-check form-check-inline">
@@ -383,7 +404,7 @@ function App() {
                   <Controller
                     name="maritalStatus"
                     control={control}
-                    defaultValue={false}
+                    defaultValue={selectedEmployee ? selectedEmployee.maritalStatus : false}
                     render={({ field }) => (
                       <input
                         {...field}
@@ -414,7 +435,7 @@ function App() {
                 <Controller
                   name="birthDate"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.birthDate : ''}
                   render={({ field }) => (
                     <input
                       {...field}
@@ -435,7 +456,7 @@ function App() {
                 <Controller
                   name="hobbies"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.hobbies : ''}
                   render={({ field }) => (
                     <input
                       {...field}
@@ -460,7 +481,7 @@ function App() {
                 <Controller
                   name="salary"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.salary : null}
                   render={({ field }) => (
                     <input
                       {...field}
@@ -483,7 +504,7 @@ function App() {
                 <Controller
                   name="address"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.address : null}
                   render={({ field }) => (
                     <textarea
                       {...field}
@@ -507,7 +528,7 @@ function App() {
                 <Controller
                   name="country"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.country : null}
                   render={({ field }) => (
                     <select
                       {...field}
@@ -536,7 +557,7 @@ function App() {
                 <Controller
                   name="state"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.state : null}
                   render={({ field }) => (
                     <select
                       {...field}
@@ -568,7 +589,7 @@ function App() {
                 <Controller
                   name="city"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.city : null}
                   render={({ field }) => (
                     <select
                       {...field}
@@ -592,7 +613,7 @@ function App() {
                 <Controller
                   name="zipCode"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.zipCode : null}
                   render={({ field }) => (
                     <input
                       {...field}
@@ -617,7 +638,7 @@ function App() {
                 <Controller
                   name="password"
                   control={control}
-                  defaultValue=""
+                  defaultValue={selectedEmployee ? selectedEmployee.password : null}
                   rules={{
                     required: 'Password is required',
                     pattern: {
