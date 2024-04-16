@@ -16,6 +16,7 @@ function App() {
   const [cities, setCities] = useState({});
   const [citydropdowm, setCityDropdown] = useState([]);
   const [isModalVisible, setIsModalVisible] = useState(false);
+  const [showRegisterForm, setShowRegisterForm] = useState(false);
   const { handleSubmit , control , formState: { errors = {} } , reset } = useForm();
   const [selectedEmployee, setSelectedEmployee] = useState(null);
   const formRef = useRef(null);
@@ -31,6 +32,28 @@ function App() {
     setUser(null);
   };
 
+  const handleRegister = (userData) => {
+    fetch('http://localhost:5055/api/Authentication/register',{
+      method: 'POST',
+      body: JSON.stringify(userData),
+      headers: {
+        'Content-Type': 'application/json'
+      }
+    })
+    .then(response => {
+      if(!response.ok){
+        message.warning('User already exists.');
+        throw new Error('User already exists.'); 
+      }
+      return response.json();
+    })
+    .then(data =>{
+      console.log(data);
+      setShowRegisterForm(false);
+      message.alert("User added successfully!")
+    })
+  }
+
   const handleLogin = (userData) => {
     fetch('http://localhost:5055/api/Authentication/login', {
       method: 'POST',
@@ -41,12 +64,13 @@ function App() {
     })
     .then(response => {
       if(!response.ok){
-        window.alert('Invalid Email/Password');
+        message.warning('Invalid Email/Password');
         throw new Error('Invalid Email/Password'); 
       }
       return response.json();
     })
     .then(data => {
+      message.success("User logged in successfully!")
       const token = data.message;
       setUser(userData);
       setLoggedIn(true);
@@ -275,7 +299,17 @@ function App() {
   return (
     <div className="App">
       {!loggedIn ? (
-        <LoginForm login={handleLogin} />
+      //   <div className="forms-container">
+      //   <LoginForm login={handleLogin} showRegisterForm={() => setShowRegisterForm(true)} />
+      //   {showRegisterForm && <RegisterForm register={handleRegister} />}
+      // </div>
+        <div className="forms-container">
+          {showRegisterForm ? (
+            <RegisterForm register={handleRegister} />
+          ) : (
+            <LoginForm login={handleLogin} showRegisterForm={() => setShowRegisterForm(true)} />
+          )}
+        </div>
       ) : (
       <div className="Table-container">
         <h2>Employee Management</h2>
@@ -713,7 +747,7 @@ function App() {
   );  
 }
 
-function LoginForm({ login }) {
+function LoginForm({ login, showRegisterForm }) {
   
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -748,6 +782,61 @@ function LoginForm({ login }) {
         />
       </div>
       <button type="submit" className="btn btn-primary">Login</button>
+      <button type="button" className="btn btn-secondary" onClick={showRegisterForm}>Register</button>
+    </form>
+  );
+}
+
+function RegisterForm({ register }) {
+
+  const { handleSubmit } = useForm();
+
+  
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmpassword, setConfirmPassword] = useState('');
+
+  const onSubmit = (e) => {
+    // e.preventDefault();
+    register({email, password, confirmpassword});
+  };
+
+  return (
+    <form className='limitedwidth mx-auto' onSubmit={handleSubmit(onSubmit)}>
+      <h2>Register</h2>
+      <div className="mb-3">
+        <input
+          type="email"
+          className="form-control"
+          placeholder="Username or Email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
+      </div>
+      <div className="mb-3">
+        <input
+          type="password"
+          className="form-control"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+          // pattern='/^(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,16}$/'
+        />
+      </div>
+      <div className="mb-3">
+        <input
+          type="password"
+          className="form-control"
+          placeholder="Confirm Password"
+          value={confirmpassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+          // pattern='/^(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,16}$/'
+        />
+      </div>
+      <button type="submit" className="btn btn-primary">Register</button>
     </form>
   );
 }
