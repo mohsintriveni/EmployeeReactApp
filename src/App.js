@@ -30,6 +30,7 @@ function App() {
     localStorage.removeItem('token');
     setLoggedIn(false);
     setUser(null);
+    message.success("Logged out successfully!")
   };
 
   const handleRegister = (userData) => {
