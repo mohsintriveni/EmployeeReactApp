@@ -2,6 +2,7 @@ import './App.css';
 import { Table, Button, Modal, message } from 'antd';
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm , Controller } from 'react-hook-form';
+import apiService from './apiService'; 
 
 function App() {
 
@@ -34,92 +35,69 @@ function App() {
   };
 
   const handleRegister = (userData) => {
-    fetch('http://localhost:5055/api/Authentication/register',{
-      method: 'POST',
-      body: JSON.stringify(userData),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+    apiService.registerUser(userData)
     .then(response => {
-      if(!response.ok){
-        message.warning('User already exists.');
-        throw new Error('User already exists.'); 
-      }
-      return response.json();
-    })
-    .then(data =>{
-      console.log(data);
+      console.log(response);
       setShowRegisterForm(false);
-      message.alert("User added successfully!")
+      message.success("User added successfully!")
     })
+    .catch(error => {
+      console.error('Error registering user:', error);
+    });
   }
 
   const handleLogin = (userData) => {
-    fetch('http://localhost:5055/api/Authentication/login', {
-      method: 'POST',
-      body: JSON.stringify(userData),
-      headers: {
-        'Content-Type': 'application/json'
-      }
-    })
+    apiService.loginUser(userData)
     .then(response => {
-      if(!response.ok){
-        message.warning('Invalid Email/Password');
-        throw new Error('Invalid Email/Password'); 
-      }
-      return response.json();
-    })
-    .then(data => {
       message.success("User logged in successfully!")
-      const token = data.message;
+      const token = response.message;
       setUser(userData);
       setLoggedIn(true);
       localStorage.setItem('token', token);
     })
-    .catch(error => console.error('Error logging in:', error));
+    .catch(error => {
+      console.error('Error logging in:', error);
+      message.warning('Invalid Email/Password');
+    });
   };
   
   useEffect(() => {
     const token = localStorage.getItem('token');
     if (token) {
       setLoggedIn(true);
-      // setUser(JSON.parse(loggedInUser));
     };
 
-    fetch('http://localhost:5055/api/Employees/get-all-employees')
-      .then(response => response.json())
-      .then(data => {
-        setData(data);
+    apiService.getAllEmployees()
+      .then(response => {
+        setData(response.data);
       })
       .catch(error => console.error('Error fetching data:', error));
 
-    fetch('http://localhost:5055/api/Country/get-countries')
-    .then(response => response.json())
-    .then(data => {
-      setCountryDropdown(data);
+    apiService.getCountries()
+    .then(response => {
+      setCountryDropdown(response.data);
       const countryMap = {};
-      data.forEach(country => {
+      response.data.forEach(country => {
         countryMap[country.id] = country.countryName;
       });
       setCountries(countryMap);
     })
+    .catch(error => console.error('Error fetching countries:', error));
 
-    fetch('http://localhost:5055/api/City/get-all-cities')
-    .then(response => response.json())
-    .then(data => {
+    apiService.getAllCities()
+    .then(response => {
       const cityMap = {};
-      data.forEach(city => {
+      response.data.forEach(city => {
         cityMap[city.id] = city.cityName;
       });
       setCities(cityMap);
     })
+    .catch(error => console.error('Error fetching cities:', error));
 
-    fetch('http://localhost:5055/api/States/get-all-states')
-    .then(response => response.json())
-    .then(data => {
+    apiService.getAllStates()
+    .then(response => {
       const stateMap = {};
-      data.forEach(state => {
+      response.data.forEach(state => {
         stateMap[state.id] = state.stateName;
       });
       setStates(stateMap);
@@ -143,23 +121,22 @@ function App() {
   };
 
   const handleStateChange = (value) => {
-    fetch('http://localhost:5055/api/City/get-cities-by-state/'+value)
-    .then(response => response.json())
-    .then(data => {
-      setCityDropdown(data);
+    apiService.getCitiesByState(value)
+    .then(response => {
+      setCityDropdown(response.data);
     })
+    .catch(error => console.error('Error fetching cities by state:', error));
   }
 
   const handleCountryChange = (value) => {
-    fetch('http://localhost:5055/api/States/get-states-by-country/'+value)
-    .then(response => response.json())
-    .then(data => {
-      setStateDropdown(data);
+    apiService.getStatesByCountry(value)
+    .then(response => {
+      setStateDropdown(response.data);
     })
+    .catch(error => console.error('Error fetching states by country:', error));
   }
 
   const onSubmit = async (formData) => {
-    // const formData = getValues();
     const payload = new FormData();
     payload.append('photo', file);
     payload.append('firstName', formData.firstName);
@@ -177,9 +154,7 @@ function App() {
     payload.append('state', formData.state);
     payload.append('city', formData.city);
     payload.append('zipCode', formData.zipCode);
-    // var currentDate = new Date().toISOString();
     payload.append('password', formData.password);
-    // formData.append('created', currentDate);
 
     let apiUrl = 'http://localhost:5055/api/Employees/add-employee/';
     let method = 'POST';
@@ -189,27 +164,15 @@ function App() {
       method = 'PUT';
     }
 
-    fetch(apiUrl, {
-      method: method,
-      body: payload
-    })
-      .then(response => {
-        if (!response.ok) {
-          throw new Error('Failed to add employee details');
-        }
-        return response.json();
-      })
-      .then(() => {
-        fetch('http://localhost:5055/api/Employees/get-all-employees')
-          .then(response => response.json())
-          .then(data => {
-            setData(data);
-          })
-          .catch(error => console.error('Error fetching data:', error));
-      })
-      .catch(error => {
-        console.error('Error adding employee details:', error.message);
-      });
+    try {
+      await apiService[method.toLowerCase()](apiUrl, payload);
+  
+      const updatedData = await apiService.getAllEmployees();
+      setData(updatedData.data);
+    } catch (error) {
+      console.error('Error adding/updating employee details:', error.message);
+    }
+  
     handleCancel();
   };
 
@@ -221,19 +184,18 @@ function App() {
       okType: 'danger',
       cancelText: 'No',
       onOk() {
-        fetch(`http://localhost:5055/api/Employees/delete-employee/`+record.id, {
-          method: 'DELETE',
-        })
+        apiService.deleteEmployee(record.id)
         .then(response => {
           if (response.ok) {
             message.success('Employee deleted successfully!');
             fetch('http://localhost:5055/api/Employees/get-all-employees')
-            .then(response => response.json())
-            .then(updatedData => setData(updatedData))
-            .catch(error => console.error('Error fetching updated data:', error));
+            return apiService.getAllEmployees();
           } else {
             message.error('Failed to delete employee.');
           }
+        })
+        .then(updatedData => {
+          setData(updatedData.data);
         })
         .catch(error => {
           console.error('Error deleting employee:', error);
@@ -300,10 +262,6 @@ function App() {
   return (
     <div className="App">
       {!loggedIn ? (
-      //   <div className="forms-container">
-      //   <LoginForm login={handleLogin} showRegisterForm={() => setShowRegisterForm(true)} />
-      //   {showRegisterForm && <RegisterForm register={handleRegister} />}
-      // </div>
         <div className="forms-container">
           {showRegisterForm ? (
             <RegisterForm register={handleRegister} />
@@ -779,7 +737,6 @@ function LoginForm({ login, showRegisterForm }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          // pattern='/^(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,16}$/'
         />
       </div>
       <button type="submit" className="btn btn-primary">Login</button>
@@ -798,7 +755,6 @@ function RegisterForm({ register }) {
   const [confirmpassword, setConfirmPassword] = useState('');
 
   const onSubmit = (e) => {
-    // e.preventDefault();
     register({email, password, confirmpassword});
   };
 
@@ -823,7 +779,6 @@ function RegisterForm({ register }) {
           value={password}
           onChange={(e) => setPassword(e.target.value)}
           required
-          // pattern='/^(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,16}$/'
         />
       </div>
       <div className="mb-3">
@@ -834,7 +789,6 @@ function RegisterForm({ register }) {
           value={confirmpassword}
           onChange={(e) => setConfirmPassword(e.target.value)}
           required
-          // pattern='/^(?=.*[A-Z])(?=.*\d)(?=.*[^\da-zA-Z]).{8,16}$/'
         />
       </div>
       <button type="submit" className="btn btn-primary">Register</button>
