@@ -3,6 +3,7 @@ import { Table, Button, Modal, message } from 'antd';
 import React, { useState, useEffect, useRef } from 'react';
 import { useForm , Controller } from 'react-hook-form';
 import apiService from './apiService'; 
+import EmployeeTable from './EmployeeTable';
 
 function App() {
 
@@ -274,7 +275,12 @@ function App() {
           <Button type="primary" onClick={showModal}>Add</Button>
           <Button type="primary" onClick={handleLogout}>Logout</Button>
         </div>
-        <Table dataSource={data} columns={columns} />
+        <EmployeeTable
+            data={data}
+            columns={columns}
+            handleEdit={handleEdit}
+            handleDelete={handleDelete}
+          />
       </div>
       )}
       <Modal
