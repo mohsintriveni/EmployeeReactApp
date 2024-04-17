@@ -160,19 +160,21 @@ function App() {
     let method = 'POST';
 
     if(selectedEmployee) {
+      console.log("Reached here!")
       apiUrl = 'http://localhost:5055/api/Employees/update-employee/'+selectedEmployee.id;
       method = 'PUT';
+      await apiService.updateEmployee(selectedEmployee.id , payload)
+      .then(response => {
+        apiService.getAllEmployees().then(res=>setData(res.data));
+      });
     }
-
-    try {
-      await apiService[method.toLowerCase()](apiUrl, payload);
-  
-      const updatedData = await apiService.getAllEmployees();
-      setData(updatedData.data);
-    } catch (error) {
-      console.error('Error adding/updating employee details:', error.message);
-    }
-  
+    else{
+      console.log("Reached here also")
+      apiService.addEmployee(payload).then(response => {
+        apiService.getAllEmployees().then(res=>setData(res.data));
+      });
+    }  
+       
     handleCancel();
   };
 
@@ -186,13 +188,9 @@ function App() {
       onOk() {
         apiService.deleteEmployee(record.id)
         .then(response => {
-          if (response.ok) {
             message.success('Employee deleted successfully!');
             fetch('http://localhost:5055/api/Employees/get-all-employees')
             return apiService.getAllEmployees();
-          } else {
-            message.error('Failed to delete employee.');
-          }
         })
         .then(updatedData => {
           setData(updatedData.data);
@@ -378,6 +376,7 @@ function App() {
                           type="radio"
                           id="maleGender"
                           value="M"
+                          defaultChecked={field.value === 'M'}
                         />
                         <label
                           className="form-check-label"
@@ -393,6 +392,7 @@ function App() {
                           type="radio"
                           id="femaleGender"
                           value="F"
+                          defaultChecked={field.value === 'F'}
                         />
                         <label
                           className="form-check-label"
@@ -447,6 +447,7 @@ function App() {
                         className="form-check-input"
                         type="checkbox"
                         id="maritalStatus"
+                        defaultChecked={field.value}
                       />
                     )}
                   />
@@ -471,7 +472,7 @@ function App() {
                 <Controller
                   name="birthDate"
                   control={control}
-                  defaultValue={selectedEmployee ? selectedEmployee.birthDate : ''}
+                  defaultValue={selectedEmployee ? new Date(selectedEmployee.birthDate).toISOString().split('T')[0] : ''}
                   render={({ field }) => (
                     <input
                       {...field}
@@ -649,7 +650,7 @@ function App() {
                 <Controller
                   name="zipCode"
                   control={control}
-                  defaultValue={selectedEmployee ? selectedEmployee.zipCode : null}
+                  defaultValue={selectedEmployee ? selectedEmployee.zipCode : ''}
                   render={({ field }) => (
                     <input
                       {...field}
@@ -674,7 +675,7 @@ function App() {
                 <Controller
                   name="password"
                   control={control}
-                  defaultValue={selectedEmployee ? selectedEmployee.password : null}
+                  defaultValue={selectedEmployee ? selectedEmployee.password : ''}
                   rules={{
                     required: 'Password is required',
                     pattern: {

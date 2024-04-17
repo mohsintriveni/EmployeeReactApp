@@ -61,7 +61,7 @@ const apiService = {
         return axios.post(`${API_BASE_URL}/Employees/add-employee/`, employeeData);
     },
     updateEmployee: (employeeId, employeeData) => {
-        return axios.put(`${API_BASE_URL}/Employees/update-employee/${employeeId}`, employeeData);
+        return axios.put(`${API_BASE_URL}/Employees/update-employee/`+employeeId, employeeData);
     },
     deleteEmployee: (employeeId) => {
         return axios.delete(`${API_BASE_URL}/Employees/delete-employee/${employeeId}`);
