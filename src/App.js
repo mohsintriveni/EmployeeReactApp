@@ -15,7 +15,6 @@ function App() {
   const [data, setData] = useState([]);
   const [ file , setFile ] = useState(null);
   const [countries, setCountries] = useState({});
-  const [countrydropdown, setCountryDropdown] = useState([]);
   const [states, setStates] = useState({});
   const [cities, setCities] = useState({});
   const [isModalVisible, setIsModalVisible] = useState(false);
@@ -75,7 +74,6 @@ function App() {
 
     apiService.getCountries()
     .then(response => {
-      setCountryDropdown(response.data);
       const countryMap = {};
       response.data.forEach(country => {
         countryMap[country.id] = country.countryName;
@@ -131,9 +129,6 @@ function App() {
     payload.append('email', formData.email);
     payload.append('gender', formData.gender);
     payload.append('maritalStatus', formData.maritalStatus);
-    // var birthDate = payload.birthDate;
-    // var birthDateISO = new Date(birthDate + 'T00:00:00').toISOString();
-    // payload.append('birthDate', birthDateISO);
     payload.append('hobbies', formData.hobbies);
     payload.append('salary', formData.salary);
     payload.append('address', formData.address);
@@ -242,7 +237,7 @@ function App() {
       {!loggedIn ? (
         <div className="forms-container">
           {showRegisterForm ? (
-            <RegisterForm register={handleRegister} />
+            <RegisterForm handleRegister={handleRegister} />
           ) : (
             <LoginForm login={handleLogin} showRegisterForm={() => setShowRegisterForm(true)} />
           )}

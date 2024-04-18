@@ -1,13 +1,13 @@
 import React, { useState } from 'react';
 
-function RegisterForm({ register }) {  
+function RegisterForm({ handleRegister }) {  
     
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [confirmpassword, setConfirmPassword] = useState('');
   
     const onSubmit = (e) => {
-      register({email, password, confirmpassword});
+      handleRegister({email, password, confirmpassword});
     };
   
     return (
