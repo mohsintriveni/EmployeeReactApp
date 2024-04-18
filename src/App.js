@@ -2,6 +2,8 @@ import './App.css';
 import { Button, Modal, message } from 'antd';
 import React, { useState, useEffect } from 'react';
 import { useForm  } from 'react-hook-form';
+import LoginForm from './LoginForm';
+import RegisterForm from './RegisterForm';
 import apiService from './apiService'; 
 import EmployeeTable from './EmployeeTable';
 import EmployeeForm from './EmpoyeeForm';
@@ -105,6 +107,7 @@ function App() {
 
   const showModal = () => {
     setIsModalVisible(true);
+    console.log(selectedEmployee)
   };
 
   const handleCancel = () => {
@@ -114,6 +117,8 @@ function App() {
   };
 
   const handleEdit = (record) => {
+    console.log(record)
+
     setSelectedEmployee(record);
     showModal();
   };
@@ -243,19 +248,13 @@ function App() {
           )}
         </div>
       ) : (
-      <div className="Table-container">
-        <h2>Employee Management</h2>
-        <div className="add-button-container">
-          <Button type="primary" onClick={showModal}>Add</Button>
-          <Button type="primary" onClick={handleLogout}>Logout</Button>
-        </div>
+      
         <EmployeeTable
             data={data}
             columns={columns}
-            handleEdit={handleEdit}
-            handleDelete={handleDelete}
+            showModal={showModal}
+            handleLogout={handleLogout}
           />
-      </div>
       )}
       <EmployeeForm
         isVisible={isModalVisible}
@@ -266,96 +265,6 @@ function App() {
       />
     </div>
   );  
-}
-
-function LoginForm({ login, showRegisterForm }) {
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-
-  const onSubmit = (e) => {
-    e.preventDefault();
-    login({email,password});
-  };
-
-  return (
-    <form className='limitedwidth mx-auto' onSubmit={onSubmit}>
-      <h2>Login</h2>
-      <div className="mb-3">
-        <input
-          type="email"
-          className="form-control"
-          placeholder="Username or Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-      <div className="mb-3">
-        <input
-          type="password"
-          className="form-control"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-      <button type="submit" className="btn btn-primary">Login</button>
-      <button type="button" className="btn btn-secondary" onClick={showRegisterForm}>Register</button>
-    </form>
-  );
-}
-
-function RegisterForm({ register }) {
-
-  const { handleSubmit } = useForm();
-
-  
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmpassword, setConfirmPassword] = useState('');
-
-  const onSubmit = (e) => {
-    register({email, password, confirmpassword});
-  };
-
-  return (
-    <form className='limitedwidth mx-auto' onSubmit={handleSubmit(onSubmit)}>
-      <h2>Register</h2>
-      <div className="mb-3">
-        <input
-          type="email"
-          className="form-control"
-          placeholder="Username or Email"
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-          required
-        />
-      </div>
-      <div className="mb-3">
-        <input
-          type="password"
-          className="form-control"
-          placeholder="Password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          required
-        />
-      </div>
-      <div className="mb-3">
-        <input
-          type="password"
-          className="form-control"
-          placeholder="Confirm Password"
-          value={confirmpassword}
-          onChange={(e) => setConfirmPassword(e.target.value)}
-          required
-        />
-      </div>
-      <button type="submit" className="btn btn-primary">Register</button>
-    </form>
-  );
 }
 
 export default App;

@@ -180,7 +180,7 @@ const EmployeeForm = ({ isVisible, onCancel, onSubmit, selectedEmployee, onFileC
                 <Controller
                   name="photo"
                   control={control}
-                  defaultValue={null}
+                  defaultValue={''}
                   render={({ field }) => (
                     <input
                       {...field}
@@ -284,7 +284,7 @@ const EmployeeForm = ({ isVisible, onCancel, onSubmit, selectedEmployee, onFileC
                 <Controller
                   name="salary"
                   control={control}
-                  defaultValue={selectedEmployee ? selectedEmployee.salary : null}
+                  defaultValue={selectedEmployee ? selectedEmployee.salary : ''}
                   render={({ field }) => (
                     <input
                       {...field}
@@ -307,7 +307,7 @@ const EmployeeForm = ({ isVisible, onCancel, onSubmit, selectedEmployee, onFileC
                 <Controller
                   name="address"
                   control={control}
-                  defaultValue={selectedEmployee ? selectedEmployee.address : null}
+                  defaultValue={selectedEmployee ? selectedEmployee.address : ''}
                   render={({ field }) => (
                     <textarea
                       {...field}
